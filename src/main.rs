@@ -1,14 +1,24 @@
+use clap::Parser;
 use core::panic;
-
 use tokio;
 use tokio::io::{AsyncWriteExt, BufWriter};
 
 const M3U8_PATH: &str = "m3u8_example_data.txt";
 const FIRST_LINE_PARSING: &str = "#EXTINF";
-const VIDEO_PATH: &str = "video.mp4";
+
+/// CLI m3u8 Downloader
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Name of the file to save the video
+    #[arg(short, long)]
+    name: String,
+}
 
 #[tokio::main]
 async fn main() {
+    let args = Args::parse();
+
     let urls = match get_urls_from_file(M3U8_PATH) {
         Ok(urls) => urls,
         Err(e) => panic!("Failed to parse videos.\nCause: {e}"),
@@ -17,10 +27,11 @@ async fn main() {
         Ok(stream_vec) => stream_vec,
         Err(e) => panic!("Failed getting stream from the http request.\nCause: {e}"),
     };
-    match save_stream_to_file(VIDEO_PATH, &stream_vec).await {
+    match save_stream_to_file(args.name.as_str(), &stream_vec).await {
         Ok(bytes_written) => println!(
-            "Successfully wrote {} MB to the file {VIDEO_PATH}",
-            (bytes_written)
+            "Successfully wrote {} MB to the file {}",
+            bytes_written,
+            args.name.as_str()
         ),
         Err(e) => println!("Failed to write stream to file.\nCause: {e}"),
     };
