@@ -3,23 +3,26 @@ use core::panic;
 use tokio;
 use tokio::io::{AsyncWriteExt, BufWriter};
 
-const M3U8_PATH: &str = "m3u8_example_data.txt";
 const FIRST_LINE_PARSING: &str = "#EXTINF";
 
 /// CLI m3u8 Downloader
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Name of the file to save the video
+    /// Path of m3u8 file (.txt)
     #[arg(short, long)]
-    name: String,
+    source: String,
+
+    /// Path where the vieo should be saved
+    #[arg(short, long)]
+    output: String,
 }
 
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
-    let urls = match get_urls_from_file(M3U8_PATH) {
+    let urls = match get_urls_from_file(args.source.as_str()) {
         Ok(urls) => urls,
         Err(e) => panic!("Failed to parse videos.\nCause: {e}"),
     };
@@ -27,12 +30,8 @@ async fn main() {
         Ok(stream_vec) => stream_vec,
         Err(e) => panic!("Failed getting stream from the http request.\nCause: {e}"),
     };
-    match save_stream_to_file(args.name.as_str(), &stream_vec).await {
-        Ok(bytes_written) => println!(
-            "Successfully wrote {} MB to the file {}",
-            bytes_written,
-            args.name.as_str()
-        ),
+    match save_stream_to_file(args.output.as_str(), &stream_vec).await {
+        Ok(_) => println!("Successfully saved stream to file {}", args.output.as_str()),
         Err(e) => println!("Failed to write stream to file.\nCause: {e}"),
     };
 }
@@ -62,7 +61,7 @@ async fn create_vector_of_streams(urls: &Vec<String>) -> Result<Vec<u8>, reqwest
     let client = reqwest::Client::new();
     let urls_len = urls.len();
 
-    for (index, url) in urls.iter().enumerate().take(10) {
+    for (index, url) in urls.iter().enumerate() {
         println!("Saving url stream... [{index}/{urls_len}]");
         let stream = client.get(url.to_string()).send().await?.bytes().await?;
         stream_vec.append(&mut stream.as_ref().to_vec());
@@ -71,13 +70,11 @@ async fn create_vector_of_streams(urls: &Vec<String>) -> Result<Vec<u8>, reqwest
     Ok(stream_vec)
 }
 
-async fn save_stream_to_file(path: &str, stream_vec: &Vec<u8>) -> Result<f32, tokio::io::Error> {
+async fn save_stream_to_file(path: &str, stream_vec: &Vec<u8>) -> Result<(), tokio::io::Error> {
     let file = tokio::fs::File::create(path).await?;
     let mut writer = BufWriter::new(file);
     println!("Writing to file...");
-    let bytes_written = writer.write(stream_vec.as_ref()).await? as f32;
+    writer.write_all(stream_vec.as_ref()).await?;
 
-    let bytes_written = bytes_written / ((1024 * 1000) as f32);
-
-    Ok(bytes_written)
+    Ok(())
 }
