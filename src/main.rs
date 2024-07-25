@@ -1,6 +1,5 @@
 use clap::Parser;
 use core::panic;
-use tokio;
 use tokio::io::{AsyncWriteExt, BufWriter};
 
 const FIRST_LINE_PARSING: &str = "#EXTINF";
@@ -9,7 +8,7 @@ const FIRST_LINE_PARSING: &str = "#EXTINF";
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Path of m3u8 file (.txt)
+    /// Path of m3u8 file
     #[arg(short, long)]
     source: String,
 
@@ -37,10 +36,10 @@ async fn main() {
 }
 
 fn get_urls_from_file(path: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let file_content = std::fs::read_to_string(path)?.replace(",", "");
+    let file_content = std::fs::read_to_string(path)?.replace(',', "");
     let parse_content = file_content.lines().skip(5).collect::<Vec<_>>();
     if parse_content
-        .get(0)
+        .first()
         .expect("Too few lines in m3u8 file")
         .get(0..7)
         .unwrap_or("")
@@ -56,7 +55,7 @@ fn get_urls_from_file(path: &str) -> Result<Vec<String>, Box<dyn std::error::Err
         .collect::<Vec<String>>())
 }
 
-async fn create_vector_of_streams(urls: &Vec<String>) -> Result<Vec<u8>, reqwest::Error> {
+async fn create_vector_of_streams(urls: &[String]) -> Result<Vec<u8>, reqwest::Error> {
     let mut stream_vec: Vec<u8> = vec![];
     let client = reqwest::Client::new();
     let urls_len = urls.len();
