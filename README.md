@@ -28,7 +28,7 @@ To use, you can simple run
 ```
 cargo run -r -- -s <SOURCE> -o <OUTPUT>
 ```
-In this case, <SOURCE> is the path to your .m3u8 file and <OUTPUT> is where you want to save the video. 
+In this case, *SOURCE* is the path to your .m3u8 file and *OUTPUT* is where you want to save the video. 
 With the example file, you could get the video by running
 ```
 cargo run -r -- -s input_example.m3u8 -o video.mp4
